@@ -1,8 +1,5 @@
 """
 Root state for Reflex Pulse.
-Uses rx.State with background polling to keep all metrics live.
-TypedDict annotations are required so Reflex generates typed Vars
-inside rx.foreach, enabling comparisons like row["avg_ms"] > 500.
 """
 
 import asyncio
@@ -62,7 +59,6 @@ class ErrorRatePoint(TypedDict):
 
 class PulseState(rx.State):
 
-    # summary cards
     total_calls: int = 0
     total_errors: int = 0
     avg_latency_ms: float = 0.0
@@ -70,39 +66,24 @@ class PulseState(rx.State):
     active_connections: int = 0
     error_rate_pct: float = 0.0
 
-    # time series charts
     latency_series: list[LatencyPoint] = []
     connection_series: list[ConnectionPoint] = []
     state_growth_series: list[StatePoint] = []
     error_rate_series: list[ErrorRatePoint] = []
 
-    # leaderboard tables
     handler_leaderboard: list[HandlerRow] = []
     var_leaderboard: list[VarRow] = []
 
-    # error explorer
     recent_errors: list[ErrorRow] = []
     selected_error: ErrorRow = {"id": "", "ts": "", "page": "", "message": "", "stack": "", "token": ""}
     error_panel_open: bool = False
 
-    # ui controls
     time_window: int = 60
     is_loading: bool = False
     active_tab: str = "overview"
 
-    @rx.event(background=True)
-    async def start_polling(self):
-        """Polls all metrics every 5 seconds."""
-        while True:
-            async with self:
-                await self.refresh_all()
-            await asyncio.sleep(5)
-
-    @rx.event
-    async def refresh_all(self):
-        self.is_loading = True
-        yield
-
+    def _load_data(self):
+        """Synchronously load all data from SQLite."""
         stats = queries.get_summary_stats()
         self.total_calls = stats["total_calls"]
         self.total_errors = stats["total_errors"]
@@ -119,6 +100,22 @@ class PulseState(rx.State):
         self.var_leaderboard = queries.get_var_leaderboard()
         self.recent_errors = queries.get_recent_errors()
 
+    @rx.event(background=True)
+    async def start_polling(self):
+        """Poll every 5 seconds using background task pattern."""
+        while True:
+            async with self:
+                self.is_loading = True
+            await asyncio.sleep(0.1)
+            async with self:
+                self._load_data()
+                self.is_loading = False
+            await asyncio.sleep(5)
+
+    @rx.event
+    def refresh_all(self):
+        self.is_loading = True
+        self._load_data()
         self.is_loading = False
 
     @rx.event
