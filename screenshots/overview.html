@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reflex Pulse</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #F8F9FB; color: #111827; display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px; min-height: 100vh; background: white;
+    border-right: 1px solid #E5E7EB; position: fixed; top: 0; left: 0;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .logo-icon {
+    width: 32px; height: 32px; border-radius: 8px; background: #7C3AED;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-icon svg { color: white; }
+  .logo-title { font-size: 14px; font-weight: 700; color: #111827; }
+  .logo-sub { font-size: 11px; color: #9CA3AF; }
+  .nav { padding: 8px; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: #6B7280;
+    margin-bottom: 2px; transition: all 0.15s;
+  }
+  .nav-item.active { background: rgba(124,58,237,0.1); color: #7C3AED; }
+  .nav-item svg { opacity: 0.7; }
+  .nav-item.active svg { opacity: 1; }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid #E5E7EB; }
+  .refresh-label { font-size: 11px; color: #9CA3AF; display: flex; align-items: center; gap: 4px; }
+
+  .main { margin-left: 220px; padding: 28px 32px; flex: 1; }
+
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px; padding-bottom: 20px;
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .page-title { font-size: 22px; font-weight: 700; color: #111827; flex: 1; }
+  .window-select {
+    padding: 6px 12px; border: 1px solid #E5E7EB; border-radius: 8px;
+    font-size: 13px; background: white; color: #374151; cursor: pointer;
+    font-family: inherit;
+  }
+  .window-label { font-size: 13px; color: #9CA3AF; }
+  .refresh-btn {
+    width: 34px; height: 34px; border: 1px solid #E5E7EB; border-radius: 8px;
+    background: white; display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+
+  .stat-grid { display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat-card {
+    flex: 1; min-width: 150px; background: white; border: 1px solid #E5E7EB;
+    border-radius: 12px; padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .stat-label { font-size: 11px; font-weight: 500; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .stat-value { font-size: 30px; font-weight: 700; color: #111827; line-height: 1; margin-bottom: 4px; }
+  .stat-sub { font-size: 11px; color: #9CA3AF; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-green { background: #10B981; }
+  .dot-red { background: #EF4444; }
+  .dot-blue { background: #3B82F6; }
+  .dot-violet { background: #7C3AED; }
+  .dot-amber { background: #F59E0B; }
+
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-card {
+    background: white; border: 1px solid #E5E7EB; border-radius: 12px;
+    padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .chart-title { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+  .chart-sub { font-size: 12px; color: #9CA3AF; margin-bottom: 16px; }
+  .chart-wrap { height: 220px; }
+
+  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .table-card {
+    background: white; border: 1px solid #E5E7EB; border-radius: 12px;
+    padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; font-weight: 600; color: #9CA3AF; text-align: left; padding: 0 0 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td { font-size: 13px; padding: 9px 0; border-bottom: 1px solid #F3F4F6; color: #374151; }
+  tr:last-child td { border-bottom: none; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500;
+  }
+  .badge-green { background: #D1FAE5; color: #065F46; }
+  .badge-amber { background: #FEF3C7; color: #92400E; }
+  .badge-red { background: #FEE2E2; color: #991B1B; }
+
+  .live-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 999px; background: #D1FAE5;
+    font-size: 11px; font-weight: 600; color: #065F46;
+  }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #10B981; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">
+      <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    <div>
+      <div class="logo-title">Reflex Pulse</div>
+      <div class="logo-sub">Live observability</div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Overview
+    </div>
+    <div class="nav-item">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+      State inspector
+    </div>
+    <div class="nav-item">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Error explorer
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="refresh-label">
+      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2.8-9.6L23 10"/></svg>
+      Auto-refresh: 5s
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <h1 class="page-title">Overview</h1>
+    <span class="live-pill"><span class="live-dot"></span>Live</span>
+    <select class="window-select"><option>60 min window</option></select>
+    <div class="refresh-btn">
+      <svg width="14" height="14" fill="none" stroke="#6B7280" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2.8-9.6L23 10"/></svg>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Active connections <span class="dot dot-blue"></span></div>
+      <div class="stat-value">14</div>
+      <div class="stat-sub">live WebSocket sessions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Handler calls <span class="dot dot-violet"></span></div>
+      <div class="stat-value">529</div>
+      <div class="stat-sub">last 60 minutes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg latency <span class="dot dot-green"></span></div>
+      <div class="stat-value">312<span style="font-size:18px;font-weight:500;color:#6B7280">ms</span></div>
+      <div class="stat-sub">across all handlers</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Error rate <span class="dot dot-red"></span></div>
+      <div class="stat-value" style="color:#EF4444">6.4<span style="font-size:18px;font-weight:500">%</span></div>
+      <div class="stat-sub">handler exceptions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Frontend errors <span class="dot dot-amber"></span></div>
+      <div class="stat-value" style="color:#F59E0B">18</div>
+      <div class="stat-sub">browser exceptions</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Event handler latency</div>
+      <div class="chart-sub">p50 and p95 response time per minute</div>
+      <div class="chart-wrap"><canvas id="latencyChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">WebSocket connections</div>
+      <div class="chart-sub">Connects and disconnects per minute</div>
+      <div class="chart-wrap"><canvas id="connChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="bottom-grid">
+    <div class="chart-card">
+      <div class="chart-title">Error rate over time</div>
+      <div class="chart-sub">Backend handler errors as % of total calls</div>
+      <div class="chart-wrap"><canvas id="errChart"></canvas></div>
+    </div>
+    <div class="table-card">
+      <div class="chart-title" style="margin-bottom:2px">Slowest event handlers</div>
+      <div class="chart-sub">Ranked by avg duration, last 60 min</div>
+      <table>
+        <thead><tr>
+          <th style="width:48%">Handler</th>
+          <th>Avg ms</th><th>Calls</th><th>Errors</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="mono">ReportState.generate_pdf</td><td><span class="badge badge-red">1205ms</span></td><td>38</td><td style="color:#EF4444;font-weight:600">4</td></tr>
+          <tr><td class="mono">AppState.load_dashboard</td><td><span class="badge badge-amber">364ms</span></td><td>91</td><td style="color:#EF4444;font-weight:600">6</td></tr>
+          <tr><td class="mono">DemoState.slow_search</td><td><span class="badge badge-amber">312ms</span></td><td>117</td><td style="color:#EF4444;font-weight:600">8</td></tr>
+          <tr><td class="mono">DemoState.buggy_handler</td><td><span class="badge badge-amber">98ms</span></td><td>112</td><td style="color:#EF4444;font-weight:600">12</td></tr>
+          <tr><td class="mono">DemoState.add_items</td><td><span class="badge badge-green">22ms</span></td><td>98</td><td>0</td></tr>
+          <tr><td class="mono">AppState.fetch_user</td><td><span class="badge badge-green">48ms</span></td><td>76</td><td>0</td></tr>
+          <tr><td class="mono">DemoState.increment</td><td><span class="badge badge-green">7ms</span></td><td>97</td><td>0</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+const minutes = Array.from({length: 30}, (_, i) => {
+  const d = new Date(Date.now() - (30 - i) * 60000);
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+});
+
+function rand(base, spread) {
+  return Math.max(0, base + (Math.random() - 0.5) * spread);
+}
+
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { labels: { font: { family: 'Inter', size: 11 }, boxWidth: 12 } } },
+  scales: {
+    x: { ticks: { font: { family: 'Inter', size: 10 }, maxTicksLimit: 8 }, grid: { color: '#F3F4F6' } },
+    y: { ticks: { font: { family: 'Inter', size: 10 } }, grid: { color: '#F3F4F6' } },
+  }
+};
+
+new Chart(document.getElementById('latencyChart'), {
+  type: 'line',
+  data: {
+    labels: minutes,
+    datasets: [
+      { label: 'p50 ms', data: minutes.map(() => rand(280, 120)), borderColor: '#10B981', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false },
+      { label: 'p95 ms', data: minutes.map(() => rand(620, 200)), borderColor: '#F59E0B', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false },
+    ]
+  },
+  options: chartDefaults
+});
+
+new Chart(document.getElementById('connChart'), {
+  type: 'bar',
+  data: {
+    labels: minutes,
+    datasets: [
+      { label: 'connects', data: minutes.map(() => Math.round(rand(5, 6))), backgroundColor: '#3B82F6', borderRadius: 3 },
+      { label: 'disconnects', data: minutes.map(() => Math.round(rand(3, 4))), backgroundColor: '#F59E0B', borderRadius: 3 },
+    ]
+  },
+  options: { ...chartDefaults, scales: { ...chartDefaults.scales, x: { ...chartDefaults.scales.x, stacked: false } } }
+});
+
+new Chart(document.getElementById('errChart'), {
+  type: 'line',
+  data: {
+    labels: minutes,
+    datasets: [
+      {
+        label: 'error %',
+        data: minutes.map(() => rand(6, 8)),
+        borderColor: '#EF4444', borderWidth: 2, pointRadius: 0, tension: 0.4,
+        fill: true, backgroundColor: 'rgba(239,68,68,0.08)'
+      }
+    ]
+  },
+  options: chartDefaults
+});
+</script>
+</body>
+</html>

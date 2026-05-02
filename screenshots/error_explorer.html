@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reflex Pulse - Error Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #F8F9FB; color: #111827; display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; min-height: 100vh; background: white; border-right: 1px solid #E5E7EB; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; }
+  .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 20px 16px 16px; border-bottom: 1px solid #E5E7EB; }
+  .logo-icon { width: 32px; height: 32px; border-radius: 8px; background: #7C3AED; display: flex; align-items: center; justify-content: center; }
+  .logo-title { font-size: 14px; font-weight: 700; }
+  .logo-sub { font-size: 11px; color: #9CA3AF; }
+  .nav { padding: 8px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: #6B7280; margin-bottom: 2px; }
+  .nav-item.active { background: rgba(124,58,237,0.1); color: #7C3AED; }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid #E5E7EB; }
+  .refresh-label { font-size: 11px; color: #9CA3AF; display: flex; align-items: center; gap: 4px; }
+  .main { margin-left: 220px; padding: 28px 32px; flex: 1; }
+  .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #E5E7EB; }
+  .page-title { font-size: 22px; font-weight: 700; color: #111827; flex: 1; }
+
+  .trace-panel { background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .trace-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .trace-title { font-size: 15px; font-weight: 700; color: #111827; }
+  .close-btn { width: 28px; height: 28px; border: 1px solid #E5E7EB; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #F9FAFB; }
+  .error-msg-box { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; font-weight: 500; color: #991B1B; }
+  .trace-block { background: #111827; border-radius: 8px; padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7; color: #E5E7EB; margin-bottom: 12px; overflow: hidden; }
+  .trace-line-dim { color: #6B7280; }
+  .trace-line-file { color: #93C5FD; }
+  .trace-line-err { color: #FCA5A5; font-weight: 500; }
+  .trace-meta { display: flex; gap: 24px; }
+  .trace-meta-item { font-size: 12px; color: #9CA3AF; }
+  .trace-meta-val { color: #374151; font-weight: 500; }
+
+  .errors-card { background: white; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .errors-head { padding: 18px 20px 12px; border-bottom: 1px solid #F3F4F6; }
+  .errors-title { font-size: 14px; font-weight: 600; color: #111827; }
+  .errors-sub { font-size: 12px; color: #9CA3AF; }
+  .error-row { padding: 14px 20px; border-bottom: 1px solid #F9FAFB; display: flex; align-items: center; gap: 14px; }
+  .error-row:last-child { border-bottom: none; }
+  .error-row:hover { background: #F9FAFB; }
+  .err-icon { width: 28px; height: 28px; border-radius: 6px; background: #FEF2F2; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .err-content { flex: 1; }
+  .err-msg { font-size: 13px; font-weight: 500; color: #111827; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px; }
+  .err-meta { display: flex; gap: 12px; }
+  .err-ts { font-size: 11px; color: #9CA3AF; }
+  .err-page { font-size: 11px; color: #6B7280; font-family: 'JetBrains Mono', monospace; }
+  .err-token { font-size: 11px; color: #9CA3AF; font-family: 'JetBrains Mono', monospace; }
+  .view-btn { padding: 4px 10px; border: 1px solid #DDD6FE; border-radius: 6px; font-size: 12px; font-weight: 500; color: #7C3AED; background: white; cursor: pointer; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon"><svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+    <div><div class="logo-title">Reflex Pulse</div><div class="logo-sub">Live observability</div></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Overview</div>
+    <div class="nav-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>State inspector</div>
+    <div class="nav-item active"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Error explorer</div>
+  </nav>
+  <div class="sidebar-footer"><div class="refresh-label"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2.8-9.6L23 10"/></svg>Auto-refresh: 5s</div></div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <h1 class="page-title">Error explorer</h1>
+  </div>
+
+  <div class="trace-panel">
+    <div class="trace-header">
+      <div class="trace-title">Stack trace</div>
+      <div class="close-btn"><svg width="12" height="12" stroke="#6B7280" stroke-width="2" fill="none" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
+    </div>
+    <div class="error-msg-box">ValueError: Simulated database timeout</div>
+    <div class="trace-block">
+      <div class="trace-line-dim">Traceback (most recent call last):</div>
+      <div class="trace-line-file">  File "/app/sample_app/sample_app.py", line 52, in buggy_handler</div>
+      <div style="color:#E5E7EB">    raise ValueError("Simulated database timeout")</div>
+      <div class="trace-line-err">ValueError: Simulated database timeout</div>
+    </div>
+    <div class="trace-meta">
+      <div class="trace-meta-item">Page: <span class="trace-meta-val">/dashboard</span></div>
+      <div class="trace-meta-item">Session: <span class="trace-meta-val" style="font-family:'JetBrains Mono',monospace">a3f21b9c...</span></div>
+      <div class="trace-meta-item">Time: <span class="trace-meta-val">2025-05-01 14:32:07</span></div>
+    </div>
+  </div>
+
+  <div class="errors-card">
+    <div class="errors-head">
+      <div class="errors-title">Recent errors</div>
+      <div class="errors-sub">Frontend browser exceptions and backend handler failures</div>
+    </div>
+    <div class="error-row" style="background:#FFF9F9">
+      <div class="err-icon"><svg width="14" height="14" fill="none" stroke="#EF4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
+      <div class="err-content">
+        <div class="err-msg">ValueError: Simulated database timeout</div>
+        <div class="err-meta"><span class="err-ts">2025-05-01 14:32:07</span><span class="err-page">/dashboard</span><span class="err-token">a3f21b9c...</span></div>
+      </div>
+      <button class="view-btn">View trace</button>
+    </div>
+    <div class="error-row">
+      <div class="err-icon"><svg width="14" height="14" fill="none" stroke="#EF4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
+      <div class="err-content">
+        <div class="err-msg">TypeError: Cannot read property 'map' of undefined</div>
+        <div class="err-meta"><span class="err-ts">2025-05-01 14:28:51</span><span class="err-page">/reports</span><span class="err-token">c90e14a2...</span></div>
+      </div>
+      <button class="view-btn">View trace</button>
+    </div>
+    <div class="error-row">
+      <div class="err-icon"><svg width="14" height="14" fill="none" stroke="#EF4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
+      <div class="err-content">
+        <div class="err-msg">ChunkLoadError: Loading chunk 4 failed</div>
+        <div class="err-meta"><span class="err-ts">2025-05-01 14:22:14</span><span class="err-page">/</span><span class="err-token">77dd02fb...</span></div>
+      </div>
+      <button class="view-btn">View trace</button>
+    </div>
+    <div class="error-row">
+      <div class="err-icon"><svg width="14" height="14" fill="none" stroke="#EF4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
+      <div class="err-content">
+        <div class="err-msg">ValueError: Simulated database timeout</div>
+        <div class="err-meta"><span class="err-ts">2025-05-01 14:17:09</span><span class="err-page">/users</span><span class="err-token">e561cc30...</span></div>
+      </div>
+      <button class="view-btn">View trace</button>
+    </div>
+    <div class="error-row">
+      <div class="err-icon"><svg width="14" height="14" fill="none" stroke="#EF4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
+      <div class="err-content">
+        <div class="err-msg">NetworkError: Failed to fetch /api/data</div>
+        <div class="err-meta"><span class="err-ts">2025-05-01 14:10:33</span><span class="err-page">/dashboard</span><span class="err-token">b12f9e77...</span></div>
+      </div>
+      <button class="view-btn">View trace</button>
+    </div>
+  </div>
+</main>
+</body>
+</html>

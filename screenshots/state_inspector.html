@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reflex Pulse - State Inspector</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #F8F9FB; color: #111827; display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; min-height: 100vh; background: white; border-right: 1px solid #E5E7EB; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; }
+  .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 20px 16px 16px; border-bottom: 1px solid #E5E7EB; }
+  .logo-icon { width: 32px; height: 32px; border-radius: 8px; background: #7C3AED; display: flex; align-items: center; justify-content: center; }
+  .logo-title { font-size: 14px; font-weight: 700; color: #111827; }
+  .logo-sub { font-size: 11px; color: #9CA3AF; }
+  .nav { padding: 8px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: #6B7280; margin-bottom: 2px; }
+  .nav-item.active { background: rgba(124,58,237,0.1); color: #7C3AED; }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid #E5E7EB; }
+  .refresh-label { font-size: 11px; color: #9CA3AF; display: flex; align-items: center; gap: 4px; }
+  .main { margin-left: 220px; padding: 28px 32px; flex: 1; }
+  .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #E5E7EB; }
+  .page-title { font-size: 22px; font-weight: 700; color: #111827; flex: 1; }
+
+  .warning-banner { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 10px; margin-bottom: 20px; }
+  .warning-title { font-size: 13px; font-weight: 600; color: #92400E; }
+  .warning-sub { font-size: 12px; color: #B45309; margin-top: 2px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .card-title { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+  .card-sub { font-size: 12px; color: #9CA3AF; margin-bottom: 16px; }
+  .chart-wrap { height: 230px; }
+
+  .var-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .var-name { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #111827; width: 130px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 10px; background: #F3F4F6; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .var-size { font-size: 11px; color: #9CA3AF; width: 70px; text-align: right; }
+
+  .leak-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 999px; }
+  .leak-red { background: #FEE2E2; color: #991B1B; }
+  .leak-amber { background: #FEF3C7; color: #92400E; }
+  .leak-green { background: #D1FAE5; color: #065F46; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon"><svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+    <div><div class="logo-title">Reflex Pulse</div><div class="logo-sub">Live observability</div></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Overview</div>
+    <div class="nav-item active"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>State inspector</div>
+    <div class="nav-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Error explorer</div>
+  </nav>
+  <div class="sidebar-footer"><div class="refresh-label"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2.8-9.6L23 10"/></svg>Auto-refresh: 5s</div></div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <h1 class="page-title">State inspector</h1>
+  </div>
+
+  <div class="warning-banner">
+    <svg width="16" height="16" fill="none" stroke="#F59E0B" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <div>
+      <div class="warning-title">Memory leak detection is active</div>
+      <div class="warning-sub">State vars growing consistently across sessions are flagged in red. heavy_list and items are growing unbounded.</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">State memory usage</div>
+      <div class="card-sub">Total serialized state size per session over time</div>
+      <div class="chart-wrap"><canvas id="stateChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">State var sizes</div>
+      <div class="card-sub">Average serialized size per var across recent sessions</div>
+
+      <div class="var-row">
+        <span class="var-name">heavy_list</span>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#EF4444"></div></div>
+        <span class="var-size">27.6 KB</span>
+        <span class="leak-badge leak-red">growing</span>
+      </div>
+      <div class="var-row">
+        <span class="var-name">items</span>
+        <div class="bar-track"><div class="bar-fill" style="width:98%;background:#EF4444"></div></div>
+        <span class="var-size">27.6 KB</span>
+        <span class="leak-badge leak-red">growing</span>
+      </div>
+      <div class="var-row">
+        <span class="var-name">results</span>
+        <div class="bar-track"><div class="bar-fill" style="width:28%;background:#F59E0B"></div></div>
+        <span class="var-size">4.2 KB</span>
+        <span class="leak-badge leak-amber">watch</span>
+      </div>
+      <div class="var-row">
+        <span class="var-name">query</span>
+        <div class="bar-track"><div class="bar-fill" style="width:5%;background:#7C3AED"></div></div>
+        <span class="var-size">44 B</span>
+        <span class="leak-badge leak-green">stable</span>
+      </div>
+      <div class="var-row">
+        <span class="var-name">count</span>
+        <div class="bar-track"><div class="bar-fill" style="width:2%;background:#7C3AED"></div></div>
+        <span class="var-size">4 B</span>
+        <span class="leak-badge leak-green">stable</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const minutes = Array.from({length: 30}, (_, i) => {
+  const d = new Date(Date.now() - (30 - i) * 60000);
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+});
+new Chart(document.getElementById('stateChart'), {
+  type: 'line',
+  data: {
+    labels: minutes,
+    datasets: [{
+      label: 'avg bytes',
+      data: minutes.map((_, i) => Math.round(8000 + i * 900 + (Math.random() - 0.5) * 800)),
+      borderColor: '#7C3AED', borderWidth: 2, pointRadius: 0, tension: 0.4,
+      fill: true, backgroundColor: 'rgba(124,58,237,0.08)'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { font: { family: 'Inter', size: 11 }, boxWidth: 12 } } },
+    scales: {
+      x: { ticks: { font: { family: 'Inter', size: 10 }, maxTicksLimit: 8 }, grid: { color: '#F3F4F6' } },
+      y: { ticks: { font: { family: 'Inter', size: 10 } }, grid: { color: '#F3F4F6' } },
+    }
+  }
+});
+</script>
+</body>
+</html>
