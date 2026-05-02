@@ -17,7 +17,7 @@ from reflex_pulse.core.ingest import run_ingestion_worker
 
 
 NAV_ITEMS = [
-    ("overview", "layout-dashboard", "Overview"),
+    ("overview", "gauge", "Overview"),
     ("state", "cpu", "State inspector"),
     ("errors", "bug", "Error explorer"),
 ]

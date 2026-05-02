@@ -88,7 +88,7 @@ def leak_warning_banner() -> rx.Component:
         PulseState.avg_latency_ms > 0,
         rx.box(
             rx.hstack(
-                rx.icon("alert-triangle", size=16, color=AMBER),
+                rx.icon("triangle-alert", size=16, color=AMBER),
                 rx.vstack(
                     rx.text(
                         "Memory leak detection is active",

@@ -40,14 +40,14 @@ def summary_row() -> rx.Component:
             rx.text(PulseState.error_rate_pct, "%"),
             "handler exceptions",
             color=rx.cond(PulseState.error_rate_pct > 5, RED, GREEN),
-            icon="alert-triangle",
+            icon="triangle-alert",
         ),
         stat_card(
             "Frontend errors",
             PulseState.frontend_errors,
             "browser exceptions",
             color=rx.cond(PulseState.frontend_errors > 0, RED, GREEN),
-            icon="bug",
+            icon="circle-alert",
         ),
         wrap="wrap",
         gap="1rem",
@@ -55,7 +55,32 @@ def summary_row() -> rx.Component:
     )
 
 
-def handler_leaderboard_table() -> rx.Component:
+def handler_row(row: dict) -> rx.Component:
+    return rx.table.row(
+        rx.table.cell(
+            rx.text(row["handler"], size="2", font_family="monospace", color=TEXT_PRIMARY)
+        ),
+        rx.table.cell(
+            rx.cond(
+                row["avg_ms"] > 500,
+                rx.badge(row["avg_ms"], color_scheme="red"),
+                rx.cond(
+                    row["avg_ms"] > 100,
+                    rx.badge(row["avg_ms"], color_scheme="orange"),
+                    rx.badge(row["avg_ms"], color_scheme="green"),
+                ),
+            )
+        ),
+        rx.table.cell(rx.text(row["max_ms"], size="2", color=TEXT_MUTED)),
+        rx.table.cell(rx.text(row["calls"], size="2", color=TEXT_MUTED)),
+        rx.table.cell(
+            rx.cond(
+                row["errors"] > 0,
+                rx.badge(row["errors"], color_scheme="red"),
+                rx.badge("0", color_scheme="green"),
+            )
+        ),
+    )
     return card(
         rx.vstack(
             section_header(
@@ -73,39 +98,7 @@ def handler_leaderboard_table() -> rx.Component:
                     )
                 ),
                 rx.table.body(
-                    rx.foreach(
-                        PulseState.handler_leaderboard,
-                        lambda row: rx.table.row(
-                            rx.table.cell(
-                                rx.text(
-                                    row["handler"],
-                                    size="2",
-                                    font_family="monospace",
-                                    color=TEXT_PRIMARY,
-                                )
-                            ),
-                            rx.table.cell(
-                                rx.cond(
-                                    row["avg_ms"] > 500,
-                                    rx.text(row["avg_ms"], size="2", color=RED, weight="bold"),
-                                    rx.cond(
-                                        row["avg_ms"] > 100,
-                                        rx.text(row["avg_ms"], size="2", color=AMBER, weight="medium"),
-                                        rx.text(row["avg_ms"], size="2", color=GREEN),
-                                    ),
-                                )
-                            ),
-                            rx.table.cell(rx.text(row["max_ms"], size="2", color=TEXT_MUTED)),
-                            rx.table.cell(rx.text(row["calls"], size="2", color=TEXT_MUTED)),
-                            rx.table.cell(
-                                rx.cond(
-                                    row["errors"] > 0,
-                                    rx.text(row["errors"], size="2", color=RED, weight="bold"),
-                                    rx.text("0", size="2", color=GREEN),
-                                )
-                            ),
-                        ),
-                    )
+                    rx.foreach(PulseState.handler_leaderboard, handler_row)
                 ),
                 width="100%",
                 size="2",

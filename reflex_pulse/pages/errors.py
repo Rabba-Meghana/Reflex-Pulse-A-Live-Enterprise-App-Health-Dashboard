@@ -118,15 +118,15 @@ def stack_trace_panel() -> rx.Component:
 
 def empty_state() -> rx.Component:
     return rx.cond(
-        PulseState.recent_errors.length() == 0,
+        PulseState.recent_errors,
+        rx.fragment(),
         rx.vstack(
-            rx.icon("check-circle", size=40, color=GREEN),
+            rx.icon("circle-check", size=40, color=GREEN),
             rx.text("No errors in the last 60 minutes", size="3", color=TEXT_MUTED),
             align="center",
             padding="3rem",
             width="100%",
         ),
-        rx.fragment(),
     )
 
 
