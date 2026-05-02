@@ -6,11 +6,11 @@ Lists frontend and backend errors with full stack trace replay.
 import reflex as rx
 from reflex_pulse.state.pulse_state import PulseState
 from reflex_pulse.components.ui import (
-    section_header, card, RED, GREEN, AMBER, TEXT_MUTED, TEXT_PRIMARY, BORDER, SURFACE
+    section_header, card, RED, GREEN, TEXT_MUTED, TEXT_PRIMARY, BORDER, SURFACE
 )
 
 
-def error_row(row: dict) -> rx.Component:
+def error_row(row) -> rx.Component:
     return rx.box(
         rx.hstack(
             rx.vstack(
@@ -19,12 +19,11 @@ def error_row(row: dict) -> rx.Component:
                     size="2",
                     weight="medium",
                     color=TEXT_PRIMARY,
-                    no_of_lines=1,
                 ),
                 rx.hstack(
                     rx.text(row["ts"], size="1", color=TEXT_MUTED),
                     rx.text(row["page"], size="1", color=TEXT_MUTED),
-                    rx.text("session:" + row["token"], size="1", color=TEXT_MUTED),
+                    rx.text(row["token"], size="1", color=TEXT_MUTED),
                     gap="1rem",
                 ),
                 spacing="1",
@@ -55,12 +54,7 @@ def stack_trace_panel() -> rx.Component:
         rx.box(
             rx.vstack(
                 rx.hstack(
-                    rx.heading(
-                        "Stack trace",
-                        size="4",
-                        weight="bold",
-                        color=TEXT_PRIMARY,
-                    ),
+                    rx.heading("Stack trace", size="4", weight="bold", color=TEXT_PRIMARY),
                     rx.spacer(),
                     rx.icon_button(
                         rx.icon("x", size=16),
@@ -81,14 +75,13 @@ def stack_trace_panel() -> rx.Component:
                     padding="0.75rem",
                     border_radius="8px",
                     background="#FEF2F2",
-                    border=f"1px solid #FECACA",
+                    border="1px solid #FECACA",
                     width="100%",
                 ),
                 rx.scroll_area(
                     rx.code_block(
                         PulseState.selected_error["stack"],
                         language="python",
-                        font_size="12px",
                         width="100%",
                     ),
                     max_height="400px",
