@@ -81,6 +81,9 @@ def handler_row(row: dict) -> rx.Component:
             )
         ),
     )
+
+
+def handler_leaderboard_table() -> rx.Component:
     return card(
         rx.vstack(
             section_header(
