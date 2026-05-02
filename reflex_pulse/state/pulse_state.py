@@ -1,14 +1,63 @@
 """
 Root state for Reflex Pulse.
 Uses rx.State with background polling to keep all metrics live.
+TypedDict annotations are required so Reflex generates typed Vars
+inside rx.foreach, enabling comparisons like row["avg_ms"] > 500.
 """
 
 import asyncio
-from typing import Any
+from typing import TypedDict
 
 import reflex as rx
 
 from reflex_pulse.core import queries
+
+
+class HandlerRow(TypedDict):
+    handler: str
+    avg_ms: float
+    max_ms: float
+    calls: int
+    errors: int
+
+
+class VarRow(TypedDict):
+    var: str
+    avg_bytes: int
+    max_bytes: int
+
+
+class ErrorRow(TypedDict):
+    id: str
+    ts: str
+    page: str
+    message: str
+    stack: str
+    token: str
+
+
+class LatencyPoint(TypedDict):
+    minute: str
+    p50: float
+    p95: float
+    count: int
+
+
+class ConnectionPoint(TypedDict):
+    minute: str
+    connects: int
+    disconnects: int
+
+
+class StatePoint(TypedDict):
+    minute: str
+    avg_bytes: int
+
+
+class ErrorRatePoint(TypedDict):
+    minute: str
+    error_rate: float
+    total: int
 
 
 class PulseState(rx.State):
@@ -22,18 +71,18 @@ class PulseState(rx.State):
     error_rate_pct: float = 0.0
 
     # time series charts
-    latency_series: list[dict] = []
-    connection_series: list[dict] = []
-    state_growth_series: list[dict] = []
-    error_rate_series: list[dict] = []
+    latency_series: list[LatencyPoint] = []
+    connection_series: list[ConnectionPoint] = []
+    state_growth_series: list[StatePoint] = []
+    error_rate_series: list[ErrorRatePoint] = []
 
     # leaderboard tables
-    handler_leaderboard: list[dict] = []
-    var_leaderboard: list[dict] = []
+    handler_leaderboard: list[HandlerRow] = []
+    var_leaderboard: list[VarRow] = []
 
     # error explorer
-    recent_errors: list[dict] = []
-    selected_error: dict = {}
+    recent_errors: list[ErrorRow] = []
+    selected_error: ErrorRow = {"id": "", "ts": "", "page": "", "message": "", "stack": "", "token": ""}
     error_panel_open: bool = False
 
     # ui controls
@@ -91,4 +140,4 @@ class PulseState(rx.State):
     @rx.event
     def close_error_panel(self):
         self.error_panel_open = False
-        self.selected_error = {}
+        self.selected_error = {"id": "", "ts": "", "page": "", "message": "", "stack": "", "token": ""}
