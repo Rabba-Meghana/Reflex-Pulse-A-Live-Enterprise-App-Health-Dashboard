@@ -80,7 +80,7 @@ def seed(n_handler: int = 800, n_connections: int = 200, n_snapshots: int = 300,
         # connection events
         for token in TOKENS:
             s.add(ConnectionEvent(
-                ts=random_ts(88),
+                ts=random_ts(4),
                 token=token,
                 event="connect",
                 page=random.choice(PAGES),

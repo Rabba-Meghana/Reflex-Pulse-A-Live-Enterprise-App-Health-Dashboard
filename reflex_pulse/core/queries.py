@@ -86,7 +86,7 @@ def get_handler_leaderboard(minutes: int = 60) -> list[dict]:
 
 def get_active_connections() -> dict:
     """Returns count of currently active WebSocket connections."""
-    since = _window(minutes=5)
+    since = _window(minutes=90)
     with Session(_engine) as s:
         connects = s.exec(
             select(func.count(ConnectionEvent.id))
